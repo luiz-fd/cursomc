@@ -1,6 +1,6 @@
 package com.nelioalves.cursomc.config;
 
-import static org.springframework.security.config.Customizer.withDefaults;
+import java.util.Arrays;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -9,7 +9,10 @@ import org.springframework.core.env.Environment;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.PortMapperConfigurer.HttpPortMapping;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.web.PortMapper;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -33,13 +36,18 @@ public class SecurityConfig {
 
 	@Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+		http.cors().and().csrf().disable();
+		if (Arrays.asList(env.getActiveProfiles()).contains("test")) {
+            http.headers().frameOptions().disable();
+        }
 		http
         .authorizeHttpRequests((authz) -> authz
         		.requestMatchers (HttpMethod.GET, PUBLIC_MATCHERS_GET).permitAll()
     			.requestMatchers (PUBLIC_MATCHERS).permitAll()
             .anyRequest().authenticated()
-        )
-        .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+    			//.anyRequest().permitAll()
+        );
+        //.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
         //.httpBasic(withDefaults());
     return http.build();
 }
@@ -61,5 +69,10 @@ public class SecurityConfig {
 		final UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 		source.registerCorsConfiguration("/**", new CorsConfiguration().applyPermitDefaultValues());
 		return source;
+	}	
+
+	@Bean
+	public BCryptPasswordEncoder bCryptPasswordEncoder() {
+		return new BCryptPasswordEncoder();
 	}
 }
