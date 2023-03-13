@@ -17,11 +17,14 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CharacterEncodingFilter;
 
 import com.nelioalves.cursomc.security.JWTAuthenticationFilter;
+import com.nelioalves.cursomc.security.JWTAuthorizationFilter;
 import com.nelioalves.cursomc.security.JWTUtil;
 
 @Configuration
@@ -40,19 +43,22 @@ public class SecurityConfig {
 	private static final String[] PUBLIC_MATCHERS = { 
 			"/h2-console/**" , 
 			"/authenticate/**", 
-			"CRUD/login/**"
+			"/login/**"
 	};
 
 	private static final String[] PUBLIC_MATCHERS_GET = { 
 			"/produtos/**", 
 			"/categorias/**", 
-			"/clientes/**", 
-			"/login/**"
+			"/clientes/**"
 	};
 
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 		http.cors().and().csrf().disable();
+		CharacterEncodingFilter filter = new CharacterEncodingFilter(); 
+		filter.setEncoding("UTF-8"); 
+		filter.setForceEncoding(true); 
+		http.addFilterBefore(filter, CsrfFilter.class);
 		if (Arrays.asList(env.getActiveProfiles()).contains("test")) {
 			http.headers().frameOptions().disable();
 			http.csrf().ignoringRequestMatchers(toH2Console());
@@ -65,6 +71,7 @@ public class SecurityConfig {
 		// .anyRequest().permitAll()
 		);
 		http.addFilter(new JWTAuthenticationFilter(authenticationManager(http, null, userDetailsService), jwtUtil));
+		http.addFilter(new JWTAuthorizationFilter(authenticationManager(http, null, userDetailsService), jwtUtil, userDetailsService));
 		http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 		// .httpBasic(withDefaults());
 		return http.build();
